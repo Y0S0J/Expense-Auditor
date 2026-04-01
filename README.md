@@ -8,17 +8,23 @@ Manual expense auditing is slow, inconsistent and error-prone. Finance teams mus
 This project automates the auditing process by:
  
  -Extracting key details from receipts
+ 
  -Understanding company policy rules
+ 
  -Evaluating each expense against those rules
+ 
  -Returning a clear decision with reasoning
 
 
  # How To Run
- 1.Go to the backend folder
-       cd backend
+ 1.Go to the backend folder: 
+          
+    cd backend
 
- 2.Install dependencies
-       python -m pip install fastapi uvicorn python-multipart
+ 2.Install dependencies:
+          
+    python -m pip install fastapi uvicorn python-multipart
 
- 3.Run the Server
-       python -m uvicorn app.main:app --reload
+ 3.Run the Server: 
+       
+    python -m uvicorn app.main:app --reload
