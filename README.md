@@ -9,13 +9,13 @@ Manual expense auditing is slow, inconsistent and error-prone. Finance teams mus
 # Solution
 This project automates the auditing process by:
  
- -Extracting key details from receipts
+ - Extracting key details from receipts
  
- -Understanding company policy rules
+ - Understanding company policy rules
  
- -Evaluating each expense against those rules
+ - Evaluating each expense against those rules
  
- -Returning a clear decision with reasoning
+ - Returning a clear decision with reasoning
 
 # How It Works
 1. **Policy Ingestion**
@@ -43,25 +43,26 @@ This project automates the auditing process by:
      - ⚠️ Flagged
 
  # How To Run
- 1.Go to the backend folder: 
+ 1.**Go to the backend folder**: 
           
     cd backend
 
- 2.Install dependencies:
+ 2.**Install dependencies**:
           
     python -m pip install fastapi uvicorn python-multipart pymupdf pillow pytesseract python-dateutil
 
  
- 3.Install Tesseract OCR (Required):
+ 3.**Install Tesseract OCR (Required)**:
    
-   Download from: https://github.com/UB-Mannheim/tesseract/wiki
-   Install and ensure path is set in `config.py`
+   - Download from: https://github.com/UB-Mannheim/tesseract/wiki
+   
+   - Install and ensure path is set in `config.py`
 
- 4.Run server:
+ 4.**Run server**:
 
     python -m uvicorn app.main:app --reload
 
  
- 5.Open frontend:
+ 5.**Open frontend**:
 
-   Open `frontend/index.html` in your browser   
+   - Open `frontend/index.html` in your browser   
