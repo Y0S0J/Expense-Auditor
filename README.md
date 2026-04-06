@@ -9,13 +9,13 @@ Manual expense auditing is slow, inconsistent and error-prone. Finance teams mus
 # Solution
 This project automates the auditing process by:
  
- -Extracting key details from receipts
+ - Extracting key details from receipts
  
- -Understanding company policy rules
+ - Understanding company policy rules
  
- -Evaluating each expense against those rules
+ - Evaluating each expense against those rules
  
- -Returning a clear decision with reasoning
+ - Returning a clear decision with reasoning
 
 # How It Works
 1. **Policy Ingestion**
