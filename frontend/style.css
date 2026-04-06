@@ -1,0 +1,86 @@
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f7fb;
+  color: #1f2937;
+}
+
+.container {
+  max-width: 850px;
+  margin: 40px auto;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 28px;
+}
+
+.card {
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+  margin-bottom: 22px;
+  box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input, select, textarea, button {
+  padding: 12px;
+  font-size: 14px;
+  border-radius: 8px;
+}
+
+input, select, textarea {
+  border: 1px solid #d1d5db;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+button {
+  border: none;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.status-box, .result-box {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 10px;
+}
+
+.result-box {
+  background: #f9fafb;
+  border: 1px solid #d1d5db;
+}
+
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  margin: 0;
+}
+
+.hidden {
+  display: none;
+}

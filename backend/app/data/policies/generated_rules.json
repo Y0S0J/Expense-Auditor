@@ -1,0 +1,26 @@
+{
+    "Meals": {
+        "default_limit": 2000
+    },
+    "Transport": {
+        "default_limit": 3000
+    },
+    "Lodging": {
+        "default_limit": 7000
+    },
+    "General": {
+        "prohibited_keywords": [
+            "alcohol",
+            "cigarette"
+        ]
+    },
+    "raw_policy_summary": {
+        "meals_limit_found": 2000,
+        "transport_limit_found": 3000,
+        "lodging_limit_found": 7000,
+        "prohibited_found": [
+            "alcohol",
+            "cigarette"
+        ]
+    }
+}
