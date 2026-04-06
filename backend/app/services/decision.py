@@ -8,36 +8,36 @@ def evaluate_expense(expense, rules):
     if detected_amount is None:
         return {
             "status": "Flagged",
-            "reason": "Could not reliably read amount from the receipt."
+            "reason": "The receipt amount could not be read clearly. Please review the uploaded receipt."
         }
 
     if abs(claimed_amount - detected_amount) > 1:
         return {
             "status": "Flagged",
-            "reason": f"Claimed amount ({claimed_amount}) does not match detected receipt amount ({detected_amount})."
+            "reason": f"The claimed amount ({claimed_amount}) does not match the detected receipt amount ({detected_amount})."
         }
 
     if receipt_date and claimed_date and receipt_date != claimed_date:
         return {
             "status": "Flagged",
-            "reason": f"Receipt date ({receipt_date}) does not match claimed date ({claimed_date})."
+            "reason": f"The claimed date ({claimed_date}) does not match the receipt date ({receipt_date})."
         }
 
     for word in rules.get("prohibited_keywords", []):
         if word in business_purpose:
             return {
-                "status": "Rejected",
-                "reason": f"Expense contains prohibited item: {word}."
+                "status": "Declined",
+                "reason": f"The expense includes a prohibited item: {word}."
             }
 
     limit = rules.get("default_limit")
     if limit is not None and claimed_amount > limit:
         return {
-            "status": "Rejected",
-            "reason": f"Claimed amount exceeds allowed policy limit of {limit}."
+            "status": "Declined",
+            "reason": f"The claimed amount exceeds the allowed policy limit of {limit}."
         }
 
     return {
         "status": "Approved",
-        "reason": "Expense complies with the current policy rules."
+        "reason": "The expense matches the receipt and complies with the policy rules."
     }

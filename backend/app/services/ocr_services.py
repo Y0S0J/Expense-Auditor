@@ -36,38 +36,65 @@ def _extract_text_from_pdf(pdf_path: str) -> str:
 def _clean_number(value: str):
     try:
         return float(value.replace(",", "").strip())
-    except:
+    except Exception:
         return None
 
 
 def _extract_amount(text: str):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    # PRIORITY 1: Grand Total (most important)
-    for line in lines:
-        if "grand" in line.lower() and "total" in line.lower():
-            match = re.search(r"([0-9]+\.[0-9]{2})", line)
-            if match:
-                return _clean_number(match.group(1))
-
-    # PRIORITY 2: Net / Final / Total
+    # Priority 1: Grand Total
     for line in lines:
         line_lower = line.lower()
+        if "grand" in line_lower and "total" in line_lower:
+            matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
+            if matches:
+                vals = [_clean_number(m) for m in matches]
+                vals = [v for v in vals if v is not None]
+                if vals:
+                    return max(vals)
+
+    # Priority 2: Any line containing total, but skip subtotal
+    total_candidates = []
+    for line in lines:
+        line_lower = line.lower()
+
+        if "subtotal" in line_lower:
+            continue
 
         if any(word in line_lower for word in ["bill no", "kot", "table", "covers", "waiter"]):
             continue
 
         if "total" in line_lower:
-            match = re.search(r"([0-9]+\.[0-9]{2})", line)
-            if match:
-                return _clean_number(match.group(1))
+            matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
+            for m in matches:
+                val = _clean_number(m)
+                if val is not None:
+                    total_candidates.append(val)
 
-    # PRIORITY 3: Subtotal fallback
+    if total_candidates:
+        return max(total_candidates)
+
+    # Priority 3: Subtotal fallback
     for line in lines:
         if "subtotal" in line.lower():
-            match = re.search(r"([0-9]+\.[0-9]{2})", line)
-            if match:
-                return _clean_number(match.group(1))
+            matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
+            vals = [_clean_number(m) for m in matches]
+            vals = [v for v in vals if v is not None]
+            if vals:
+                return max(vals)
+
+    # Priority 4: highest decimal number anywhere
+    decimals = []
+    for line in lines:
+        matches = re.findall(r"\b([0-9]+\.[0-9]{2})\b", line)
+        for m in matches:
+            val = _clean_number(m)
+            if val is not None:
+                decimals.append(val)
+
+    if decimals:
+        return max(decimals)
 
     return None
 
@@ -75,18 +102,31 @@ def _extract_amount(text: str):
 def _extract_date(text: str):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
+    # First try lines that mention date
     for line in lines:
         if "date" in line.lower():
-            # Fix OCR noise like 10-1.2-2025 → 10-12-2025
-            cleaned = re.sub(r"[^\d/-]", "", line)
+            # Fix OCR noise by keeping only digits and separators
+            cleaned = re.sub(r"[^0-9/\-:\s]", "", line)
 
+            # Try dd-mm-yyyy or dd/mm/yyyy
             match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{4})", cleaned)
             if match:
                 try:
                     dt = date_parser.parse(match.group(1), dayfirst=True)
                     return dt.date().isoformat()
-                except:
+                except Exception:
                     pass
+
+    # Fallback: any date-like pattern in first few lines
+    for line in lines[:12]:
+        cleaned = re.sub(r"[^0-9/\-:\s]", "", line)
+        match = re.search(r"(\d{1,2}[-/]\d{1,2}[-/]\d{4})", cleaned)
+        if match:
+            try:
+                dt = date_parser.parse(match.group(1), dayfirst=True)
+                return dt.date().isoformat()
+            except Exception:
+                pass
 
     return None
 
@@ -94,16 +134,17 @@ def _extract_date(text: str):
 def _extract_merchant(text: str):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    for line in lines[:6]:
+    for line in lines[:8]:
         line_lower = line.lower()
 
         if any(word in line_lower for word in [
             "bill no", "date", "table", "covers", "waiter",
-            "subtotal", "grand total", "kot", "qty", "rate", "amount"
+            "subtotal", "grand total", "kot", "qty", "rate",
+            "amount", "sgst", "cgst", "round-off"
         ]):
             continue
 
-        if len(line) > 3 and not re.search(r"\d{3,}", line):
+        if len(line) >= 3 and not re.search(r"\d{3,}", line):
             return line[:80]
 
     return None
