@@ -25,7 +25,7 @@ function closeRequestModal() {
   document.getElementById("requestModal").classList.add("hidden");
 }
 
-function openSubmitModal(sequenceCode, claimType, plannedPurpose, plannedDate) {
+function openSubmitModal(sequenceCode, claimType, plannedPurpose, plannedDate, estimatedBudget, approvedBudget) {
   document.getElementById("submitModal").classList.remove("hidden");
   document.getElementById("submitSequenceCode").value = sequenceCode;
   document.getElementById("submitCategory").value = claimType || "Meals";
@@ -34,6 +34,13 @@ function openSubmitModal(sequenceCode, claimType, plannedPurpose, plannedDate) {
   document.getElementById("submitAmount").value = "";
   document.getElementById("submitFile").value = "";
   hideInlineMessage("submitMessage");
+
+  const budgetInfo = document.getElementById("budgetInfo");
+  budgetInfo.classList.remove("hidden");
+  budgetInfo.innerHTML = `
+    <div><strong>Estimated Budget:</strong> ${estimatedBudget ?? "-"}</div>
+    <div><strong>Boss Approved Budget:</strong> ${approvedBudget ?? "-"}</div>
+  `;
 }
 
 function closeSubmitModal() {
@@ -45,15 +52,16 @@ async function requestClaim() {
   const claimType = document.getElementById("claimType").value;
   const purpose = document.getElementById("claimPurpose").value.trim();
   const date = document.getElementById("claimDate").value;
+  const estimatedBudget = document.getElementById("estimatedBudget").value;
 
-  if (!purpose || !date) {
+  if (!purpose || !date || !estimatedBudget) {
     showInlineMessage("requestMessage", "Please fill all fields.", true);
     return;
   }
 
   try {
     const res = await fetch(
-      `${API_BASE}/claims/request?employee_id=${encodeURIComponent(employeeId)}&claim_type=${encodeURIComponent(claimType)}&purpose=${encodeURIComponent(purpose)}&date=${encodeURIComponent(date)}`,
+      `${API_BASE}/claims/request?employee_id=${encodeURIComponent(employeeId)}&claim_type=${encodeURIComponent(claimType)}&purpose=${encodeURIComponent(purpose)}&date=${encodeURIComponent(date)}&estimated_budget=${encodeURIComponent(estimatedBudget)}`,
       { method: "POST" }
     );
     const data = await res.json();
@@ -76,6 +84,7 @@ async function requestClaim() {
       closeRequestModal();
       document.getElementById("claimPurpose").value = "";
       document.getElementById("claimDate").value = "";
+      document.getElementById("estimatedBudget").value = "";
       document.getElementById("claimType").value = "Meals";
       hideInlineMessage("requestMessage");
     }, 700);
@@ -116,9 +125,13 @@ async function submitClaimDetails() {
       return;
     }
 
+    const deductionText = (data.deductions && data.deductions.length)
+      ? `<br><strong>Deducted Items:</strong> ${data.deductions.map(d => `${d.group} (${d.amount})`).join(", ")}`
+      : "";
+
     showInlineMessage(
       "submitMessage",
-      `Submission completed. Status: ${data.status}. ${data.reason}`,
+      `Submission completed. Status: ${data.status}. ${data.reason}${deductionText}`,
       false
     );
 
@@ -128,7 +141,7 @@ async function submitClaimDetails() {
     setTimeout(() => {
       closeSubmitModal();
       hideInlineMessage("submitMessage");
-    }, 900);
+    }, 1000);
   } catch (err) {
     showInlineMessage("submitMessage", "Could not submit claim details.", true);
   }
@@ -164,13 +177,15 @@ async function loadHistory() {
             </div>
 
             <div class="history-purpose">${claim.planned_purpose}</div>
+            <div class="history-reason"><strong>Estimated Budget:</strong> ${claim.estimated_budget ?? "-"}</div>
+            <div class="history-reason"><strong>Approved Budget:</strong> ${claim.approved_budget ?? "-"}</div>
 
             ${claim.system_reason ? `<div class="history-reason"><strong>System:</strong> ${claim.system_reason}</div>` : ""}
             ${claim.boss_reason ? `<div class="history-reason"><strong>Boss:</strong> ${claim.boss_reason}</div>` : ""}
             ${claim.auditor_reason ? `<div class="history-reason"><strong>Auditor:</strong> ${claim.auditor_reason}</div>` : ""}
 
             ${canSubmit ? `
-              <button class="primary-btn" onclick="openSubmitModal('${claim.sequence_code}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}', '${claim.planned_date}')">
+              <button class="primary-btn" onclick="openSubmitModal('${claim.sequence_code}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}', '${claim.planned_date}', '${claim.estimated_budget ?? ""}', '${claim.approved_budget ?? ""}')">
                 Submit Expense Details
               </button>
             ` : ""}
@@ -224,7 +239,7 @@ function showInlineMessage(id, message, isError = false) {
   const el = document.getElementById(id);
   el.classList.remove("hidden");
   el.className = `inline-message ${isError ? "error" : "success"}`;
-  el.textContent = message;
+  el.innerHTML = message;
 }
 
 function hideInlineMessage(id) {

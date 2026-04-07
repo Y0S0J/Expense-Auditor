@@ -44,10 +44,11 @@ async function loadPendingBossClaims() {
 
             <div class="history-purpose"><strong>Employee:</strong> ${claim.employee_id}</div>
             <div class="history-purpose">${claim.planned_purpose}</div>
+            <div class="history-reason"><strong>Estimated Budget:</strong> ${claim.estimated_budget ?? "-"}</div>
 
             <div class="action-row">
-              <button class="primary-btn" onclick="openBossDecisionModal('${claim.sequence_code}', 'APPROVE', '${claim.employee_id}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}')">Approve</button>
-              <button class="danger-btn" onclick="openBossDecisionModal('${claim.sequence_code}', 'DECLINE', '${claim.employee_id}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}')">Decline</button>
+              <button class="primary-btn" onclick="openBossDecisionModal('${claim.sequence_code}', 'APPROVE', '${claim.employee_id}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}', '${claim.estimated_budget ?? ""}')">Approve</button>
+              <button class="danger-btn" onclick="openBossDecisionModal('${claim.sequence_code}', 'DECLINE', '${claim.employee_id}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}', '${claim.estimated_budget ?? ""}')">Decline</button>
             </div>
           </div>
         `
@@ -58,16 +59,18 @@ async function loadPendingBossClaims() {
   }
 }
 
-function openBossDecisionModal(sequenceCode, decisionType, employeeId, claimType, purpose) {
+function openBossDecisionModal(sequenceCode, decisionType, employeeId, claimType, purpose, estimatedBudget) {
   document.getElementById("bossDecisionModal").classList.remove("hidden");
   document.getElementById("bossDecisionSequence").value = sequenceCode;
   document.getElementById("bossDecisionType").value = decisionType;
   document.getElementById("bossDecisionReason").value = "";
+  document.getElementById("bossApprovedBudget").value = decisionType === "APPROVE" ? estimatedBudget : "";
   document.getElementById("bossDecisionInfo").innerHTML = `
     <div><strong>Sequence:</strong> ${sequenceCode}</div>
     <div><strong>Employee:</strong> ${employeeId}</div>
     <div><strong>Type:</strong> ${claimType}</div>
     <div><strong>Purpose:</strong> ${purpose}</div>
+    <div><strong>Estimated Budget:</strong> ${estimatedBudget}</div>
     <div><strong>Decision:</strong> ${decisionType}</div>
   `;
   hideInlineMessage("bossDecisionMessage");
@@ -80,6 +83,7 @@ function closeBossDecisionModal() {
 async function submitBossDecision() {
   const sequenceCode = document.getElementById("bossDecisionSequence").value;
   const decision = document.getElementById("bossDecisionType").value;
+  const approvedBudget = document.getElementById("bossApprovedBudget").value;
   const reason = document.getElementById("bossDecisionReason").value.trim();
 
   if (!reason) {
@@ -87,9 +91,14 @@ async function submitBossDecision() {
     return;
   }
 
+  if (decision === "APPROVE" && !approvedBudget) {
+    showInlineMessage("bossDecisionMessage", "Please enter the approved budget.", true);
+    return;
+  }
+
   try {
     const res = await fetch(
-      `${API_BASE}/boss/decision?sequence_code=${encodeURIComponent(sequenceCode)}&decision=${encodeURIComponent(decision)}&reason=${encodeURIComponent(reason)}`,
+      `${API_BASE}/boss/decision?sequence_code=${encodeURIComponent(sequenceCode)}&decision=${encodeURIComponent(decision)}&approved_budget=${encodeURIComponent(approvedBudget || "")}&reason=${encodeURIComponent(reason)}`,
       { method: "POST" }
     );
 

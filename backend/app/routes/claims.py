@@ -16,7 +16,7 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.post("/claims/request")
-def request_claim(employee_id: str, claim_type: str, purpose: str, date: str):
+def request_claim(employee_id: str, claim_type: str, purpose: str, date: str, estimated_budget: float):
     conn = get_connection()
     cursor = conn.cursor()
 
@@ -41,9 +41,10 @@ def request_claim(employee_id: str, claim_type: str, purpose: str, date: str):
         claim_type,
         planned_purpose,
         planned_date,
+        estimated_budget,
         status
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, (
         seq,
         employee["employee_id"],
@@ -51,6 +52,7 @@ def request_claim(employee_id: str, claim_type: str, purpose: str, date: str):
         claim_type,
         purpose,
         date,
+        estimated_budget,
         "PENDING_BOSS_APPROVAL"
     ))
 
@@ -61,7 +63,7 @@ def request_claim(employee_id: str, claim_type: str, purpose: str, date: str):
         user_role="boss",
         user_id=employee["boss_id"],
         claim_sequence_code=seq,
-        message=f"New claim request {seq} from employee {employee_id} requires your approval."
+        message=f"New claim request {seq} from employee {employee_id} requires your approval. Estimated budget: {estimated_budget}."
     )
 
     return {
@@ -95,7 +97,7 @@ def get_pending_submission_claims(employee_id: str):
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT sequence_code, claim_type, planned_purpose, planned_date, status
+    SELECT sequence_code, claim_type, planned_purpose, planned_date, estimated_budget, approved_budget, status
     FROM claims
     WHERE employee_id = ? AND status = 'PENDING_SUBMISSION'
     ORDER BY created_at DESC, id DESC
@@ -147,7 +149,9 @@ def submit_claim_details(
         "business_purpose": purpose,
         "category": category,
         "detected_amount": ocr_data.get("detected_amount"),
-        "receipt_date": ocr_data.get("receipt_date")
+        "receipt_date": ocr_data.get("receipt_date"),
+        "approved_budget": claim["approved_budget"],
+        "raw_text": ocr_data.get("raw_text")
     }
 
     result = evaluate_expense(expense, rules)
@@ -159,6 +163,7 @@ def submit_claim_details(
         actual_purpose = ?,
         receipt_path = ?,
         ocr_amount = ?,
+        adjusted_amount = ?,
         ocr_date = ?,
         status = ?,
         system_reason = ?,
@@ -170,6 +175,7 @@ def submit_claim_details(
         purpose,
         file_path,
         ocr_data.get("detected_amount"),
+        result.get("adjusted_amount"),
         ocr_data.get("receipt_date"),
         result["status"],
         result["reason"],
@@ -198,5 +204,7 @@ def submit_claim_details(
         "sequence_code": sequence_code,
         "status": result["status"],
         "reason": result["reason"],
+        "adjusted_amount": result.get("adjusted_amount"),
+        "deductions": result.get("deductions", []),
         "ocr_data": ocr_data
     }

@@ -30,6 +30,7 @@ async function loadFlaggedClaims() {
 
   data.forEach((claim) => {
     const div = document.createElement("div");
+    const encoded = encodeClaim(claim);
 
     div.innerHTML = `
       <div class="history-card">
@@ -45,12 +46,14 @@ async function loadFlaggedClaims() {
         <div class="history-purpose"><strong>Planned Purpose:</strong> ${claim.planned_purpose}</div>
         <div class="history-purpose"><strong>Actual Purpose:</strong> ${claim.actual_purpose || "-"}</div>
         <div class="history-purpose"><strong>Claimed Amount:</strong> ${claim.actual_amount ?? "-"}</div>
+        <div class="history-purpose"><strong>Adjusted Amount:</strong> ${claim.adjusted_amount ?? "-"}</div>
         <div class="history-purpose"><strong>OCR Amount:</strong> ${claim.ocr_amount ?? "-"}</div>
         <div class="history-reason"><strong>System Reason:</strong> ${claim.system_reason || "-"}</div>
 
         <div class="action-row">
-          <button class="primary-btn" onclick="openAuditorDecisionModal(${encodeClaim(claim)}, 'APPROVED')">Approve</button>
-          <button class="danger-btn" onclick="openAuditorDecisionModal(${encodeClaim(claim)}, 'DECLINED')">Decline</button>
+          <button class="primary-btn" onclick="openAuditorDecisionModal('${encoded}', 'APPROVED')">Approve</button>
+          <button class="danger-btn" onclick="openAuditorDecisionModal('${encoded}', 'DECLINED')">Decline</button>
+          <button class="sidebar-btn secondary" onclick="openAuditorDecisionModal('${encoded}', 'RESUBMIT')">Ask To Resubmit</button>
         </div>
       </div>
     `;
@@ -60,13 +63,15 @@ async function loadFlaggedClaims() {
 }
 
 function encodeClaim(claim) {
-  return JSON.stringify(claim).replace(/"/g, '&quot;');
+  return btoa(unescape(encodeURIComponent(JSON.stringify(claim))));
 }
 
-function openAuditorDecisionModal(claim, decisionType) {
-  if (typeof claim === "string") {
-    claim = JSON.parse(claim);
-  }
+function decodeClaim(encoded) {
+  return JSON.parse(decodeURIComponent(escape(atob(encoded))));
+}
+
+function openAuditorDecisionModal(encodedClaim, decisionType) {
+  const claim = decodeClaim(encodedClaim);
 
   document.getElementById("auditorDecisionModal").classList.remove("hidden");
   document.getElementById("auditorDecisionSequence").value = claim.sequence_code;
@@ -81,6 +86,7 @@ function openAuditorDecisionModal(claim, decisionType) {
     <div><strong>Planned Purpose:</strong> ${claim.planned_purpose}</div>
     <div><strong>Actual Purpose:</strong> ${claim.actual_purpose || "-"}</div>
     <div><strong>Claimed Amount:</strong> ${claim.actual_amount ?? "-"}</div>
+    <div><strong>Adjusted Amount:</strong> ${claim.adjusted_amount ?? "-"}</div>
     <div><strong>OCR Amount:</strong> ${claim.ocr_amount ?? "-"}</div>
     <div><strong>Decision:</strong> ${decisionType}</div>
   `;

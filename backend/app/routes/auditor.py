@@ -27,8 +27,8 @@ def get_flagged_claims():
 def auditor_decision(sequence_code: str, decision: str, reason: str):
     decision = decision.upper().strip()
 
-    if decision not in ["APPROVED", "DECLINED"]:
-        return {"error": "Decision must be APPROVED or DECLINED"}
+    if decision not in ["APPROVED", "DECLINED", "RESUBMIT"]:
+        return {"error": "Decision must be APPROVED, DECLINED, or RESUBMIT"}
 
     conn = get_connection()
     cursor = conn.cursor()
@@ -48,26 +48,36 @@ def auditor_decision(sequence_code: str, decision: str, reason: str):
         conn.close()
         return {"error": "Only flagged claims can be reviewed by an auditor"}
 
+    new_status = "PENDING_SUBMISSION" if decision == "RESUBMIT" else decision
+
     cursor.execute("""
     UPDATE claims
     SET status = ?,
         auditor_reason = ?,
         updated_at = CURRENT_TIMESTAMP
     WHERE sequence_code = ?
-    """, (decision, reason, sequence_code))
+    """, (new_status, reason, sequence_code))
 
     conn.commit()
     conn.close()
 
-    create_notification(
-        user_role="employee",
-        user_id=claim["employee_id"],
-        claim_sequence_code=sequence_code,
-        message=f"Your flagged claim {sequence_code} has been {decision} by the auditor."
-    )
+    if decision == "RESUBMIT":
+        create_notification(
+            user_role="employee",
+            user_id=claim["employee_id"],
+            claim_sequence_code=sequence_code,
+            message=f"Your flagged claim {sequence_code} requires resubmission. Please correct the amount/details and submit again. Auditor note: {reason}"
+        )
+    else:
+        create_notification(
+            user_role="employee",
+            user_id=claim["employee_id"],
+            claim_sequence_code=sequence_code,
+            message=f"Your flagged claim {sequence_code} has been {decision} by the auditor. Auditor note: {reason}"
+        )
 
     return {
         "message": "Auditor decision recorded successfully.",
         "sequence_code": sequence_code,
-        "new_status": decision
+        "new_status": new_status
     }

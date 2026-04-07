@@ -11,7 +11,7 @@ def get_boss_pending_claims(boss_id: str):
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT sequence_code, employee_id, claim_type, planned_purpose, planned_date, status
+    SELECT sequence_code, employee_id, claim_type, planned_purpose, planned_date, estimated_budget, approved_budget, status
     FROM claims
     WHERE boss_id = ? AND status = 'PENDING_BOSS_APPROVAL'
     ORDER BY created_at DESC, id DESC
@@ -24,7 +24,7 @@ def get_boss_pending_claims(boss_id: str):
 
 
 @router.post("/boss/decision")
-def boss_decision(sequence_code: str, decision: str, reason: str = ""):
+def boss_decision(sequence_code: str, decision: str, approved_budget: float = None, reason: str = ""):
     decision = decision.upper().strip()
 
     if decision not in ["APPROVE", "DECLINE"]:
@@ -34,7 +34,7 @@ def boss_decision(sequence_code: str, decision: str, reason: str = ""):
     cursor = conn.cursor()
 
     cursor.execute("""
-    SELECT sequence_code, employee_id, boss_id, status
+    SELECT sequence_code, employee_id, boss_id, status, estimated_budget
     FROM claims
     WHERE sequence_code = ?
     """, (sequence_code,))
@@ -48,15 +48,32 @@ def boss_decision(sequence_code: str, decision: str, reason: str = ""):
         conn.close()
         return {"error": "This claim is not pending boss approval"}
 
-    new_status = "PENDING_SUBMISSION" if decision == "APPROVE" else "DECLINED_BY_BOSS"
+    if decision == "APPROVE":
+        if approved_budget is None:
+            conn.close()
+            return {"error": "Approved budget is required for approval"}
+
+        if float(approved_budget) > float(claim["estimated_budget"]):
+            conn.close()
+            return {"error": "Approved budget cannot be higher than the employee estimated budget"}
+
+        new_status = "PENDING_SUBMISSION"
+    else:
+        new_status = "DECLINED_BY_BOSS"
 
     cursor.execute("""
     UPDATE claims
     SET status = ?,
+        approved_budget = ?,
         boss_reason = ?,
         updated_at = CURRENT_TIMESTAMP
     WHERE sequence_code = ?
-    """, (new_status, reason, sequence_code))
+    """, (
+        new_status,
+        approved_budget if decision == "APPROVE" else None,
+        reason,
+        sequence_code
+    ))
 
     conn.commit()
     conn.close()
@@ -66,7 +83,7 @@ def boss_decision(sequence_code: str, decision: str, reason: str = ""):
             user_role="employee",
             user_id=claim["employee_id"],
             claim_sequence_code=sequence_code,
-            message=f"Your claim request {sequence_code} was approved by your boss. You can now submit expense details after the event."
+            message=f"Your claim request {sequence_code} was approved by your boss with budget {approved_budget}. You can now submit expense details after the event."
         )
     else:
         create_notification(
@@ -79,5 +96,6 @@ def boss_decision(sequence_code: str, decision: str, reason: str = ""):
     return {
         "message": "Boss decision recorded successfully.",
         "sequence_code": sequence_code,
-        "new_status": new_status
+        "new_status": new_status,
+        "approved_budget": approved_budget if decision == "APPROVE" else None
     }

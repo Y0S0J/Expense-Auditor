@@ -56,12 +56,16 @@ def init_db():
         planned_purpose TEXT NOT NULL,
         planned_date TEXT NOT NULL,
 
+        estimated_budget REAL,
+        approved_budget REAL,
+
         actual_amount REAL,
         actual_date TEXT,
         actual_purpose TEXT,
         receipt_path TEXT,
 
         ocr_amount REAL,
+        adjusted_amount REAL,
         ocr_date TEXT,
 
         status TEXT NOT NULL,

@@ -43,10 +43,36 @@ def _clean_number(value: str):
 def _extract_amount(text: str):
     lines = [line.strip() for line in text.splitlines() if line.strip()]
 
-    # Priority 1: Grand Total
-    for line in lines:
+    FINAL_KEYWORDS = [
+        "grand total",
+        "total",
+        "amount due",
+        "amt due",
+        "amount payable",
+        "balance due",
+        "net total"
+    ]
+
+    IGNORE_KEYWORDS = [
+        "subtotal",
+        "sub total",
+        "tax",
+        "gst",
+        "cgst",
+        "sgst",
+        "vat",
+        "round",
+        "discount"
+    ]
+
+    # 🔥 Step 1: Search from bottom (most reliable)
+    for line in reversed(lines):
         line_lower = line.lower()
-        if "grand" in line_lower and "total" in line_lower:
+
+        if any(ignore in line_lower for ignore in IGNORE_KEYWORDS):
+            continue
+
+        if any(keyword in line_lower for keyword in FINAL_KEYWORDS):
             matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
             if matches:
                 vals = [_clean_number(m) for m in matches]
@@ -54,37 +80,7 @@ def _extract_amount(text: str):
                 if vals:
                     return max(vals)
 
-    # Priority 2: Any line containing total, but skip subtotal
-    total_candidates = []
-    for line in lines:
-        line_lower = line.lower()
-
-        if "subtotal" in line_lower:
-            continue
-
-        if any(word in line_lower for word in ["bill no", "kot", "table", "covers", "waiter"]):
-            continue
-
-        if "total" in line_lower:
-            matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
-            for m in matches:
-                val = _clean_number(m)
-                if val is not None:
-                    total_candidates.append(val)
-
-    if total_candidates:
-        return max(total_candidates)
-
-    # Priority 3: Subtotal fallback
-    for line in lines:
-        if "subtotal" in line.lower():
-            matches = re.findall(r"([0-9]+\.[0-9]{2})", line)
-            vals = [_clean_number(m) for m in matches]
-            vals = [v for v in vals if v is not None]
-            if vals:
-                return max(vals)
-
-    # Priority 4: highest decimal number anywhere
+    # 🔥 Step 2: fallback → take largest number
     decimals = []
     for line in lines:
         matches = re.findall(r"\b([0-9]+\.[0-9]{2})\b", line)
