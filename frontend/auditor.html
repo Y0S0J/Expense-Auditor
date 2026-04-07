@@ -1,24 +1,62 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Auditor Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-title">AI Expense Auditor</div>
+      <div class="sidebar-subtitle">Auditor Portal</div>
+      <button class="sidebar-btn" onclick="loadFlaggedClaims()">Refresh Flagged Claims</button>
+      <button class="sidebar-btn danger" onclick="logout()">Logout</button>
+    </aside>
 
-<div class="container">
+    <main class="main-panel">
+      <div class="topbar">
+        <div>
+          <h1 id="auditorWelcome">Auditor Dashboard</h1>
+          <p>Review flagged claims and resolve them to approved or declined.</p>
+        </div>
+      </div>
 
-  <div class="card">
-    <h2>Auditor Dashboard</h2>
-    <button onclick="loadFlagged()">Load Flagged Claims</button>
+      <section class="card">
+        <h2>Flagged Claims</h2>
+        <div id="claims" class="grid-list"></div>
+      </section>
+    </main>
   </div>
 
-  <div id="claims"></div>
+  <div class="modal-overlay hidden" id="auditorDecisionModal">
+    <div class="modal-card large-modal">
+      <div class="modal-header">
+        <h2>Auditor Review</h2>
+        <button class="icon-btn" onclick="closeAuditorDecisionModal()">✕</button>
+      </div>
 
-</div>
+      <input type="hidden" id="auditorDecisionSequence" />
+      <input type="hidden" id="auditorDecisionType" />
 
-<script src="js/api.js"></script>
-<script src="js/auditor.js"></script>
+      <div id="auditorDecisionInfo" class="helper-box"></div>
 
+      <div class="receipt-preview-wrap">
+        <div class="preview-label">Uploaded Receipt</div>
+        <img id="auditorReceiptPreview" class="receipt-preview hidden" alt="Receipt Preview" />
+        <div id="auditorNoReceipt" class="muted">No receipt preview available.</div>
+      </div>
+
+      <label>Reason</label>
+      <textarea id="auditorDecisionReason" placeholder="Write your audit reasoning"></textarea>
+
+      <button class="primary-btn full-width" onclick="submitAuditorDecision()">Submit Decision</button>
+      <div id="auditorDecisionMessage" class="inline-message hidden"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/auditor.js"></script>
 </body>
 </html>

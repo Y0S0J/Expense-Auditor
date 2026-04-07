@@ -1,64 +1,100 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Employee Dashboard</title>
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="/static/css/style.css" />
 </head>
 <body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-title">AI Expense Auditor</div>
+      <div class="sidebar-subtitle">Employee Portal</div>
+      <button class="sidebar-btn" onclick="openRequestModal()">Request Claim Approval</button>
+      <button class="sidebar-btn secondary" onclick="loadHistory()">Refresh History</button>
+      <button class="sidebar-btn danger" onclick="logout()">Logout</button>
+    </aside>
 
-<div class="container">
+    <main class="main-panel">
+      <div class="topbar">
+        <div>
+          <h1 id="employeeWelcome">Welcome</h1>
+          <p>Track requests, submit approved claims, and monitor results.</p>
+        </div>
+      </div>
 
-  <div class="card">
-    <h2>Employee Dashboard</h2>
-    <button onclick="openLogModal()">➕ Log Claim</button>
-    <button onclick="openSubmitModal()">📤 Submit Claim</button>
+      <section class="card">
+        <h2>Claim History</h2>
+        <div id="historyContainer" class="grid-list"></div>
+      </section>
+
+      <section class="card">
+        <h2>Notifications</h2>
+        <div id="notificationContainer" class="list-stack"></div>
+      </section>
+    </main>
   </div>
 
-  <div class="card">
-    <h3>Result</h3>
-    <div id="result"></div>
+  <div class="modal-overlay hidden" id="requestModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Request Claim Approval</h2>
+        <button class="icon-btn" onclick="closeRequestModal()">✕</button>
+      </div>
+
+      <label>Claim Type</label>
+      <select id="claimType">
+        <option value="Meals">Meals</option>
+        <option value="Transport">Transport</option>
+        <option value="Lodging">Lodging</option>
+      </select>
+
+      <label>Purpose</label>
+      <input id="claimPurpose" placeholder="Client meeting / business trip / etc" />
+
+      <label>Planned Date</label>
+      <input id="claimDate" type="date" />
+
+      <button class="primary-btn full-width" onclick="requestClaim()">Submit Request</button>
+      <div id="requestMessage" class="inline-message hidden"></div>
+    </div>
   </div>
 
-</div>
+  <div class="modal-overlay hidden" id="submitModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Submit Claim Details</h2>
+        <button class="icon-btn" onclick="closeSubmitModal()">✕</button>
+      </div>
 
-<!-- Log Modal -->
-<div class="modal" id="logModal">
-  <div class="modal-content">
-    <h3>Log Claim</h3>
+      <input type="hidden" id="submitSequenceCode" />
 
-    <input id="purpose" placeholder="Purpose">
-    <input id="date" type="date">
+      <label>Category</label>
+      <select id="submitCategory">
+        <option value="Meals">Meals</option>
+        <option value="Transport">Transport</option>
+        <option value="Lodging">Lodging</option>
+      </select>
 
-    <select id="type">
-      <option>Meals</option>
-      <option>Transport</option>
-    </select>
+      <label>Actual Amount</label>
+      <input id="submitAmount" type="number" step="0.01" placeholder="Enter actual amount" />
 
-    <button onclick="logClaim()">Submit</button>
-    <button onclick="closeLogModal()">Close</button>
+      <label>Actual Date</label>
+      <input id="submitDate" type="date" />
 
-    <p id="seq"></p>
+      <label>Actual Purpose</label>
+      <input id="submitPurpose" placeholder="What was the expense actually used for?" />
+
+      <label>Receipt</label>
+      <input id="submitFile" type="file" />
+
+      <button class="primary-btn full-width" onclick="submitClaimDetails()">Submit Details</button>
+      <div id="submitMessage" class="inline-message hidden"></div>
+    </div>
   </div>
-</div>
 
-<!-- Submit Modal -->
-<div class="modal" id="submitModal">
-  <div class="modal-content">
-    <h3>Submit Claim</h3>
-
-    <input id="seqCode" placeholder="Sequence Code">
-    <input id="amount" placeholder="Amount">
-    <input id="submitDate" type="date">
-    <input id="purpose2" placeholder="Purpose">
-    <input type="file" id="file">
-
-    <button onclick="submitClaim()">Submit</button>
-    <button onclick="closeSubmitModal()">Close</button>
-  </div>
-</div>
-
-<script src="js/api.js"></script>
-<script src="js/employee.js"></script>
-
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/employee.js"></script>
 </body>
 </html>

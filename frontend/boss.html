@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boss Dashboard</title>
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-title">AI Expense Auditor</div>
+      <div class="sidebar-subtitle">Boss Portal</div>
+      <button class="sidebar-btn" onclick="loadPendingBossClaims()">Refresh Pending Approvals</button>
+      <button class="sidebar-btn danger" onclick="logout()">Logout</button>
+    </aside>
+
+    <main class="main-panel">
+      <div class="topbar">
+        <div>
+          <h1 id="bossWelcome">Boss Dashboard</h1>
+          <p>Review pending pre-approval requests from employees.</p>
+        </div>
+      </div>
+
+      <section class="card">
+        <h2>Pending Approval Requests</h2>
+        <div id="bossClaimsContainer" class="grid-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-overlay hidden" id="bossDecisionModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>Boss Decision</h2>
+        <button class="icon-btn" onclick="closeBossDecisionModal()">✕</button>
+      </div>
+
+      <input type="hidden" id="bossDecisionSequence" />
+      <input type="hidden" id="bossDecisionType" />
+
+      <div id="bossDecisionInfo" class="helper-box"></div>
+
+      <label>Reason</label>
+      <textarea id="bossDecisionReason" placeholder="Write your reason for approval or decline"></textarea>
+
+      <button class="primary-btn full-width" onclick="submitBossDecision()">Submit Decision</button>
+      <div id="bossDecisionMessage" class="inline-message hidden"></div>
+    </div>
+  </div>
+
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/boss.js"></script>
+</body>
+</html>

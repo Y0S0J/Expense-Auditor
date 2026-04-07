@@ -4,41 +4,57 @@ DB_NAME = "expense_auditor.db"
 
 
 def get_connection():
-    return sqlite3.connect(DB_NAME)
+    conn = sqlite3.connect(DB_NAME)
+    conn.row_factory = sqlite3.Row
+    return conn
 
 
 def init_db():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Employees
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS bosses (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        boss_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT,
+        password TEXT NOT NULL
+    )
+    """)
+
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS employees (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id TEXT UNIQUE,
-        name TEXT,
-        password TEXT
+        employee_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT,
+        password TEXT NOT NULL,
+        boss_id TEXT NOT NULL,
+        FOREIGN KEY (boss_id) REFERENCES bosses(boss_id)
     )
     """)
 
-    # Auditors
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS auditors (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE,
-        password TEXT
+        auditor_id TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT,
+        password TEXT NOT NULL
     )
     """)
 
-    # Claims
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS claims (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        sequence_code TEXT UNIQUE,
-        employee_id TEXT,
-        claim_type TEXT,
-        planned_purpose TEXT,
-        planned_date TEXT,
+        sequence_code TEXT UNIQUE NOT NULL,
+        employee_id TEXT NOT NULL,
+        boss_id TEXT NOT NULL,
+
+        claim_type TEXT NOT NULL,
+        planned_purpose TEXT NOT NULL,
+        planned_date TEXT NOT NULL,
 
         actual_amount REAL,
         actual_date TEXT,
@@ -48,18 +64,28 @@ def init_db():
         ocr_amount REAL,
         ocr_date TEXT,
 
-        status TEXT,
+        status TEXT NOT NULL,
         system_reason TEXT,
-        auditor_reason TEXT
+        boss_reason TEXT,
+        auditor_reason TEXT,
+
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+
+        FOREIGN KEY (employee_id) REFERENCES employees(employee_id),
+        FOREIGN KEY (boss_id) REFERENCES bosses(boss_id)
     )
     """)
 
-    # Notifications
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        employee_id TEXT,
-        message TEXT
+        user_role TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        claim_sequence_code TEXT,
+        message TEXT NOT NULL,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
     )
     """)
 
@@ -71,16 +97,19 @@ def seed_data():
     conn = get_connection()
     cursor = conn.cursor()
 
-    # Add test employee
     cursor.execute("""
-    INSERT OR IGNORE INTO employees (employee_id, name, password)
-    VALUES ('E001', 'John', '1234')
+    INSERT OR IGNORE INTO bosses (boss_id, name, email, password)
+    VALUES ('B001', 'Mary Manager', 'mary.manager@company.com', 'boss123')
     """)
 
-    # Add test auditor
     cursor.execute("""
-    INSERT OR IGNORE INTO auditors (username, password)
-    VALUES ('admin', 'admin')
+    INSERT OR IGNORE INTO employees (employee_id, name, email, password, boss_id)
+    VALUES ('E001', 'John Employee', 'john.employee@company.com', 'emp123', 'B001')
+    """)
+
+    cursor.execute("""
+    INSERT OR IGNORE INTO auditors (auditor_id, name, email, password)
+    VALUES ('A001', 'Alice Auditor', 'alice.auditor@company.com', 'audit123')
     """)
 
     conn.commit()

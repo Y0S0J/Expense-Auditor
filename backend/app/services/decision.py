@@ -8,37 +8,37 @@ def evaluate_expense(expense, rules):
 
     if detected_amount is None:
         return {
-            "status": "Flagged",
-            "reason": "Could not reliably detect amount from receipt."
+            "status": "FLAGGED",
+            "reason": "The system could not reliably detect the final amount from the receipt."
         }
 
-    if abs(claimed_amount - detected_amount) > 1:
+    if abs(float(claimed_amount) - float(detected_amount)) > 1:
         return {
-            "status": "Flagged",
-            "reason": f"Claimed amount ({claimed_amount}) does not match receipt amount ({detected_amount})."
+            "status": "FLAGGED",
+            "reason": f"Claimed amount ({claimed_amount}) does not match detected receipt amount ({detected_amount})."
         }
 
     if receipt_date and claimed_date and receipt_date != claimed_date:
         return {
-            "status": "Flagged",
-            "reason": "Claimed date does not match receipt date."
+            "status": "FLAGGED",
+            "reason": f"Claimed date ({claimed_date}) does not match receipt date ({receipt_date})."
         }
 
-    limit = rules.get(category)
-    if limit and claimed_amount > limit:
+    limit = rules.get("limits", {}).get(category)
+    if limit is not None and float(claimed_amount) > float(limit):
         return {
-            "status": "Declined",
-            "reason": f"Amount exceeds {category} limit ({limit})."
+            "status": "DECLINED",
+            "reason": f"The claimed amount exceeds the allowed policy limit for {category} ({limit})."
         }
 
     for word in rules.get("prohibited_keywords", []):
         if word in purpose:
             return {
-                "status": "Declined",
-                "reason": f"Contains prohibited item: {word}"
+                "status": "DECLINED",
+                "reason": f"The claim contains a prohibited item: {word}."
             }
 
     return {
-        "status": "Approved",
-        "reason": "Claim matches policy and receipt."
+        "status": "APPROVED",
+        "reason": "The expense matches the receipt and complies with company policy."
     }

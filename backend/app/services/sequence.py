@@ -1,18 +1,18 @@
-import datetime
-import sqlite3
-
+from datetime import datetime
 from app.database import get_connection
 
 
 def generate_sequence_code():
-    now = datetime.datetime.now().strftime("%Y%m%d")
+    today = datetime.now().strftime("%Y%m%d")
 
     conn = get_connection()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT COUNT(*) FROM claims WHERE sequence_code LIKE ?", (f"CLM-{now}%",))
-    count = cursor.fetchone()[0] + 1
-
+    cursor.execute(
+        "SELECT COUNT(*) as total FROM claims WHERE sequence_code LIKE ?",
+        (f"CLM-{today}-%",)
+    )
+    count = cursor.fetchone()["total"] + 1
     conn.close()
 
-    return f"CLM-{now}-{count:04d}"
+    return f"CLM-{today}-{count:04d}"

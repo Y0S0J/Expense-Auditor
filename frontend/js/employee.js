@@ -1,56 +1,238 @@
-function openLogModal() {
-  document.getElementById("logModal").style.display = "flex";
+document.addEventListener("DOMContentLoaded", async () => {
+  const employeeId = localStorage.getItem("employee_id");
+  const employeeName = localStorage.getItem("employee_name");
+
+  if (!employeeId) {
+    window.location.href = "/static/login.html";
+    return;
+  }
+
+  document.getElementById("employeeWelcome").textContent = `Welcome, ${employeeName || employeeId}`;
+  await loadHistory();
+  await loadNotifications();
+});
+
+function logout() {
+  localStorage.clear();
+  window.location.href = "/static/login.html";
 }
 
-function closeLogModal() {
-  document.getElementById("logModal").style.display = "none";
+function openRequestModal() {
+  document.getElementById("requestModal").classList.remove("hidden");
 }
 
-function openSubmitModal() {
-  document.getElementById("submitModal").style.display = "flex";
+function closeRequestModal() {
+  document.getElementById("requestModal").classList.add("hidden");
+}
+
+function openSubmitModal(sequenceCode, claimType, plannedPurpose, plannedDate) {
+  document.getElementById("submitModal").classList.remove("hidden");
+  document.getElementById("submitSequenceCode").value = sequenceCode;
+  document.getElementById("submitCategory").value = claimType || "Meals";
+  document.getElementById("submitPurpose").value = plannedPurpose || "";
+  document.getElementById("submitDate").value = plannedDate || "";
+  document.getElementById("submitAmount").value = "";
+  document.getElementById("submitFile").value = "";
+  hideInlineMessage("submitMessage");
 }
 
 function closeSubmitModal() {
-  document.getElementById("submitModal").style.display = "none";
+  document.getElementById("submitModal").classList.add("hidden");
 }
 
-async function logClaim() {
-  const user = localStorage.getItem("user");
+async function requestClaim() {
+  const employeeId = localStorage.getItem("employee_id");
+  const claimType = document.getElementById("claimType").value;
+  const purpose = document.getElementById("claimPurpose").value.trim();
+  const date = document.getElementById("claimDate").value;
 
-  const purpose = document.getElementById("purpose").value;
-  const date = document.getElementById("date").value;
-  const type = document.getElementById("type").value;
+  if (!purpose || !date) {
+    showInlineMessage("requestMessage", "Please fill all fields.", true);
+    return;
+  }
 
-  const res = await fetch(`${API_BASE}/claims/log?employee_id=${user}&claim_type=${type}&purpose=${purpose}&date=${date}`, {
-    method: "POST"
-  });
+  try {
+    const res = await fetch(
+      `${API_BASE}/claims/request?employee_id=${encodeURIComponent(employeeId)}&claim_type=${encodeURIComponent(claimType)}&purpose=${encodeURIComponent(purpose)}&date=${encodeURIComponent(date)}`,
+      { method: "POST" }
+    );
+    const data = await res.json();
 
-  const data = await res.json();
+    if (!res.ok || data.error) {
+      showInlineMessage("requestMessage", data.error || "Request failed.", true);
+      return;
+    }
 
-  document.getElementById("seq").innerText = "Sequence Code: " + data.sequence_code;
+    showInlineMessage(
+      "requestMessage",
+      `Claim request created successfully. Internal sequence: ${data.sequence_code}`,
+      false
+    );
+
+    await loadHistory();
+    await loadNotifications();
+
+    setTimeout(() => {
+      closeRequestModal();
+      document.getElementById("claimPurpose").value = "";
+      document.getElementById("claimDate").value = "";
+      document.getElementById("claimType").value = "Meals";
+      hideInlineMessage("requestMessage");
+    }, 700);
+  } catch (err) {
+    showInlineMessage("requestMessage", "Could not submit request.", true);
+  }
 }
 
-async function submitClaim() {
-  const seq = document.getElementById("seqCode").value;
-  const amount = document.getElementById("amount").value;
+async function submitClaimDetails() {
+  const sequenceCode = document.getElementById("submitSequenceCode").value;
+  const category = document.getElementById("submitCategory").value;
+  const amount = document.getElementById("submitAmount").value;
   const date = document.getElementById("submitDate").value;
-  const purpose = document.getElementById("purpose2").value;
-  const file = document.getElementById("file").files[0];
+  const purpose = document.getElementById("submitPurpose").value.trim();
+  const file = document.getElementById("submitFile").files[0];
+
+  if (!sequenceCode || !amount || !date || !purpose || !file) {
+    showInlineMessage("submitMessage", "Please fill all fields and attach a receipt.", true);
+    return;
+  }
 
   const formData = new FormData();
   formData.append("file", file);
 
-  const url = `${API_BASE}/claims/submit?sequence_code=${seq}&category=Meals&amount=${amount}&date=${date}&purpose=${purpose}`;
+  try {
+    const res = await fetch(
+      `${API_BASE}/claims/submit-details?sequence_code=${encodeURIComponent(sequenceCode)}&category=${encodeURIComponent(category)}&amount=${encodeURIComponent(amount)}&date=${encodeURIComponent(date)}&purpose=${encodeURIComponent(purpose)}`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
-  const res = await fetch(url, {
-    method: "POST",
-    body: formData
-  });
+    const data = await res.json();
 
-  const data = await res.json();
+    if (!res.ok || data.error) {
+      showInlineMessage("submitMessage", data.error || "Submission failed.", true);
+      return;
+    }
 
-  document.getElementById("result").innerHTML = `
-    <p class="${data.status.toLowerCase()}">${data.status}</p>
-    <p>${data.reason}</p>
-  `;
+    showInlineMessage(
+      "submitMessage",
+      `Submission completed. Status: ${data.status}. ${data.reason}`,
+      false
+    );
+
+    await loadHistory();
+    await loadNotifications();
+
+    setTimeout(() => {
+      closeSubmitModal();
+      hideInlineMessage("submitMessage");
+    }, 900);
+  } catch (err) {
+    showInlineMessage("submitMessage", "Could not submit claim details.", true);
+  }
+}
+
+async function loadHistory() {
+  const employeeId = localStorage.getItem("employee_id");
+  const container = document.getElementById("historyContainer");
+  container.innerHTML = `<div class="muted">Loading history...</div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/claims/history/${encodeURIComponent(employeeId)}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = `<div class="muted">No claims found.</div>`;
+      return;
+    }
+
+    container.innerHTML = data
+      .map((claim) => {
+        const statusClass = getStatusClass(claim.status);
+        const canSubmit = claim.status === "PENDING_SUBMISSION";
+
+        return `
+          <div class="history-card">
+            <div class="history-top">
+              <div>
+                <div class="history-seq">${claim.sequence_code}</div>
+                <div class="history-meta">${claim.claim_type} • ${claim.planned_date}</div>
+              </div>
+              <span class="status-pill ${statusClass}">${claim.status}</span>
+            </div>
+
+            <div class="history-purpose">${claim.planned_purpose}</div>
+
+            ${claim.system_reason ? `<div class="history-reason"><strong>System:</strong> ${claim.system_reason}</div>` : ""}
+            ${claim.boss_reason ? `<div class="history-reason"><strong>Boss:</strong> ${claim.boss_reason}</div>` : ""}
+            ${claim.auditor_reason ? `<div class="history-reason"><strong>Auditor:</strong> ${claim.auditor_reason}</div>` : ""}
+
+            ${canSubmit ? `
+              <button class="primary-btn" onclick="openSubmitModal('${claim.sequence_code}', '${claim.claim_type}', '${escapeHtml(claim.planned_purpose)}', '${claim.planned_date}')">
+                Submit Expense Details
+              </button>
+            ` : ""}
+          </div>
+        `;
+      })
+      .join("");
+  } catch (err) {
+    container.innerHTML = `<div class="error-text">Could not load history.</div>`;
+  }
+}
+
+async function loadNotifications() {
+  const employeeId = localStorage.getItem("employee_id");
+  const container = document.getElementById("notificationContainer");
+  container.innerHTML = `<div class="muted">Loading notifications...</div>`;
+
+  try {
+    const res = await fetch(`${API_BASE}/notifications/employee/${encodeURIComponent(employeeId)}`);
+    const data = await res.json();
+
+    if (!Array.isArray(data) || data.length === 0) {
+      container.innerHTML = `<div class="muted">No notifications yet.</div>`;
+      return;
+    }
+
+    container.innerHTML = data
+      .map(
+        (n) => `
+          <div class="notification-card">
+            <div>${n.message}</div>
+            <small>${n.created_at}</small>
+          </div>
+        `
+      )
+      .join("");
+  } catch (err) {
+    container.innerHTML = `<div class="error-text">Could not load notifications.</div>`;
+  }
+}
+
+function getStatusClass(status) {
+  if (status === "APPROVED") return "approved";
+  if (status === "DECLINED" || status === "DECLINED_BY_BOSS") return "declined";
+  if (status === "FLAGGED") return "flagged";
+  if (status === "PENDING_BOSS_APPROVAL" || status === "PENDING_SUBMISSION") return "pending";
+  return "neutral";
+}
+
+function showInlineMessage(id, message, isError = false) {
+  const el = document.getElementById(id);
+  el.classList.remove("hidden");
+  el.className = `inline-message ${isError ? "error" : "success"}`;
+  el.textContent = message;
+}
+
+function hideInlineMessage(id) {
+  const el = document.getElementById(id);
+  el.classList.add("hidden");
+  el.textContent = "";
+}
+
+function escapeHtml(text) {
+  return text.replace(/'/g, "&#39;").replace(/"/g, "&quot;");
 }
