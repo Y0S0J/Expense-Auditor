@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import upload, audit, policy
 
-app = FastAPI(title="AI Expense Auditor")
+from app.database import init_db
+from app.routes import auth, claims, submit, auditor
+from app.database import init_db, seed_data
+
+app = FastAPI()
+
+init_db()
 
 app.add_middleware(
     CORSMiddleware,
@@ -12,11 +17,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(upload.router, tags=["Receipts"])
-app.include_router(audit.router, tags=["Audit"])
-app.include_router(policy.router, tags=["Policy"])
+app.include_router(auth.router)
+app.include_router(claims.router)
+app.include_router(submit.router)
+app.include_router(auditor.router)
 
+init_db()
+seed_data()
 
 @app.get("/")
 def root():
-    return {"message": "Expense Auditor API is running 🚀"}
+    return {"message": "Expense Auditor API running"}

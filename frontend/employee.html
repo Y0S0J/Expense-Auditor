@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Employee Dashboard</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="container">
+
+  <div class="card">
+    <h2>Employee Dashboard</h2>
+    <button onclick="openLogModal()">➕ Log Claim</button>
+    <button onclick="openSubmitModal()">📤 Submit Claim</button>
+  </div>
+
+  <div class="card">
+    <h3>Result</h3>
+    <div id="result"></div>
+  </div>
+
+</div>
+
+<!-- Log Modal -->
+<div class="modal" id="logModal">
+  <div class="modal-content">
+    <h3>Log Claim</h3>
+
+    <input id="purpose" placeholder="Purpose">
+    <input id="date" type="date">
+
+    <select id="type">
+      <option>Meals</option>
+      <option>Transport</option>
+    </select>
+
+    <button onclick="logClaim()">Submit</button>
+    <button onclick="closeLogModal()">Close</button>
+
+    <p id="seq"></p>
+  </div>
+</div>
+
+<!-- Submit Modal -->
+<div class="modal" id="submitModal">
+  <div class="modal-content">
+    <h3>Submit Claim</h3>
+
+    <input id="seqCode" placeholder="Sequence Code">
+    <input id="amount" placeholder="Amount">
+    <input id="submitDate" type="date">
+    <input id="purpose2" placeholder="Purpose">
+    <input type="file" id="file">
+
+    <button onclick="submitClaim()">Submit</button>
+    <button onclick="closeSubmitModal()">Close</button>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script src="js/employee.js"></script>
+
+</body>
+</html>
